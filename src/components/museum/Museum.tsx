@@ -12,6 +12,11 @@ import {
   CORRIDOR_START,
   CORRIDOR_END,
 } from "./museum-data";
+import { EXHIBITS } from "./exhibits";
+import { ExhibitProvider, useExhibitState } from "./exhibit-runtime";
+import { ArtifactExhibit, WallExhibitFrame, ExhibitWatcher } from "./Exhibits3D";
+import ArtifactPanel from "./ArtifactPanel";
+
 
 /* ---------------- materials (shared, light museum palette) ---------------- */
 
@@ -212,18 +217,55 @@ function Gallery({ n, title, years, side, z }: (typeof GALLERIES)[number]) {
         {years}
       </Text>
 
-      {/* display furniture */}
-      <FramePanel position={[outerX - side * 0.3, 3, z - 4]} rotationY={side === -1 ? Math.PI / 2 : -Math.PI / 2} />
-      <FramePanel position={[outerX - side * 0.3, 3, z]} rotationY={side === -1 ? Math.PI / 2 : -Math.PI / 2} w={3} h={2} />
-      <FramePanel position={[outerX - side * 0.3, 3, z + 4]} rotationY={side === -1 ? Math.PI / 2 : -Math.PI / 2} />
-      <FramePanel position={[cx, 3, z1 + 0.3]} />
-      <FramePanel position={[cx, 3, z2 - 0.3]} rotationY={Math.PI} />
+      {/* display furniture — populated from the exhibit system where data exists */}
+      {(() => {
+        const exhibits = EXHIBITS[n];
+        const wallRotY = side === -1 ? Math.PI / 2 : -Math.PI / 2;
+        const wallX = outerX - side * 0.3;
+        const wallSlots = {
+          "wall-a": { position: [wallX, 3, z - 4] as [number, number, number], rotationY: wallRotY, w: 2.4, h: 1.7 },
+          "wall-b": { position: [wallX, 3, z] as [number, number, number], rotationY: wallRotY, w: 3, h: 2 },
+          "wall-c": { position: [wallX, 3, z + 4] as [number, number, number], rotationY: wallRotY, w: 2.4, h: 1.7 },
+        };
+        const artifactSlots = {
+          "pedestal-left": [cx - 4, 1.15, z - 3] as [number, number, number],
+          "pedestal-right": [cx + 4, 1.15, z + 3] as [number, number, number],
+          "case-center": [cx, 0.9, z] as [number, number, number],
+        };
+        const filledWalls = new Set(exhibits?.walls.map((w) => w.slot) ?? []);
+        const filledPlinths = new Set(exhibits?.artifacts.map((a) => a.slot) ?? []);
 
-      <Pedestal position={[cx - 4, 0, z - 3]} />
-      <Pedestal position={[cx + 4, 0, z + 3]} />
-      <Pedestal position={[cx, 0, z]} h={0.8} />
-      <PlaceholderSculpture position={[cx - 4, 1.15, z - 3]} variant={Number(n)} />
-      <PlaceholderSculpture position={[cx + 4, 1.15, z + 3]} variant={Number(n) + 1} />
+        return (
+          <>
+            {(Object.keys(wallSlots) as (keyof typeof wallSlots)[]).map((slot) => {
+              const cfg = wallSlots[slot];
+              const ex = exhibits?.walls.find((w) => w.slot === slot);
+              return ex ? (
+                <WallExhibitFrame key={slot} exhibit={ex} {...cfg} />
+              ) : filledWalls.size > 0 && slot !== "wall-b" ? null : (
+                <FramePanel key={slot} {...cfg} />
+              );
+            })}
+            <FramePanel position={[cx, 3, z1 + 0.3]} />
+            <FramePanel position={[cx, 3, z2 - 0.3]} rotationY={Math.PI} />
+
+            <Pedestal position={[cx - 4, 0, z - 3]} />
+            <Pedestal position={[cx + 4, 0, z + 3]} />
+            <Pedestal position={[cx, 0, z]} h={0.8} />
+
+            {exhibits?.artifacts.map((a) => (
+              <ArtifactExhibit key={a.id} artifact={a} position={artifactSlots[a.slot]} />
+            ))}
+            {!filledPlinths.has("pedestal-left") && (
+              <PlaceholderSculpture position={[cx - 4, 1.15, z - 3]} variant={Number(n)} />
+            )}
+            {!filledPlinths.has("pedestal-right") && (
+              <PlaceholderSculpture position={[cx + 4, 1.15, z + 3]} variant={Number(n) + 1} />
+            )}
+          </>
+        );
+      })()}
+
     </group>
   );
 }
@@ -377,6 +419,7 @@ function FirstPerson({ enabled }: { enabled: boolean }) {
 /* ---------------- scene ---------------- */
 
 function Scene({ firstPerson }: { firstPerson: boolean }) {
+  const { active } = useExhibitState();
   return (
     <>
       <color attach="background" args={["#f7f2e9"]} />
@@ -411,22 +454,45 @@ function Scene({ firstPerson }: { firstPerson: boolean }) {
         <Gallery key={g.n} {...g} />
       ))}
 
+      <ExhibitWatcher />
+
       <Environment preset="city" environmentIntensity={0.25} />
 
       {firstPerson ? (
         <>
-          <PointerLockControls />
-          <FirstPerson enabled />
+          {!active && <PointerLockControls />}
+          <FirstPerson enabled={!active} />
         </>
       ) : (
-        <OrbitControls target={[0, 2, -20]} maxPolarAngle={Math.PI / 2.05} enableDamping />
+        <OrbitControls target={[0, 2, -20]} maxPolarAngle={Math.PI / 2.05} enableDamping enabled={!active} />
       )}
     </>
   );
 }
 
 export default function Museum() {
+  return (
+    <ExhibitProvider>
+      <MuseumExperience />
+    </ExhibitProvider>
+  );
+}
+
+function MuseumExperience() {
   const [firstPerson, setFirstPerson] = useState(true);
+  const { nearby, active, open, close } = useExhibitState();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "KeyE" && nearby && !active) {
+        e.preventDefault();
+        open(nearby);
+      }
+      if (e.code === "Escape" && active) close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [nearby, active, open, close]);
 
   return (
     <div className="relative h-full w-full">
@@ -440,10 +506,17 @@ export default function Museum() {
         </Suspense>
       </Canvas>
 
+      {/* proximity prompt */}
+      {nearby && !active && (
+        <div className="pointer-events-none absolute left-1/2 top-[58%] -translate-x-1/2 border border-border bg-background/85 px-4 py-2 backdrop-blur-sm">
+          <span className="eyebrow">Press E to explore · {nearby.name}</span>
+        </div>
+      )}
+
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 p-6">
         <div className="pointer-events-auto flex items-center gap-4 border border-border bg-background/85 px-5 py-3 backdrop-blur-sm">
           <span className="eyebrow">
-            {firstPerson ? "Click to look · WASD to walk · Shift to stride" : "Drag to orbit · scroll to zoom"}
+            {firstPerson ? "Click to look · WASD to walk · Shift to stride · E to explore" : "Drag to orbit · scroll to zoom"}
           </span>
           <button
             onClick={() => setFirstPerson((v) => !v)}
@@ -454,9 +527,12 @@ export default function Museum() {
         </div>
       </div>
 
-      {firstPerson && (
+      {firstPerson && !active && (
         <span className="pointer-events-none absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/40" />
       )}
+
+      {active && <ArtifactPanel artifact={active} onClose={close} />}
     </div>
   );
 }
+
