@@ -12,6 +12,11 @@ import {
   CORRIDOR_START,
   CORRIDOR_END,
 } from "./museum-data";
+import { EXHIBITS } from "./exhibits";
+import { ExhibitProvider, useExhibitState } from "./exhibit-runtime";
+import { ArtifactExhibit, WallExhibitFrame, ExhibitWatcher } from "./Exhibits3D";
+import ArtifactPanel from "./ArtifactPanel";
+
 
 /* ---------------- materials (shared, light museum palette) ---------------- */
 
