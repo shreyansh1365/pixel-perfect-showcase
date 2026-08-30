@@ -217,18 +217,55 @@ function Gallery({ n, title, years, side, z }: (typeof GALLERIES)[number]) {
         {years}
       </Text>
 
-      {/* display furniture */}
-      <FramePanel position={[outerX - side * 0.3, 3, z - 4]} rotationY={side === -1 ? Math.PI / 2 : -Math.PI / 2} />
-      <FramePanel position={[outerX - side * 0.3, 3, z]} rotationY={side === -1 ? Math.PI / 2 : -Math.PI / 2} w={3} h={2} />
-      <FramePanel position={[outerX - side * 0.3, 3, z + 4]} rotationY={side === -1 ? Math.PI / 2 : -Math.PI / 2} />
-      <FramePanel position={[cx, 3, z1 + 0.3]} />
-      <FramePanel position={[cx, 3, z2 - 0.3]} rotationY={Math.PI} />
+      {/* display furniture — populated from the exhibit system where data exists */}
+      {(() => {
+        const exhibits = EXHIBITS[n];
+        const wallRotY = side === -1 ? Math.PI / 2 : -Math.PI / 2;
+        const wallX = outerX - side * 0.3;
+        const wallSlots = {
+          "wall-a": { position: [wallX, 3, z - 4] as [number, number, number], rotationY: wallRotY, w: 2.4, h: 1.7 },
+          "wall-b": { position: [wallX, 3, z] as [number, number, number], rotationY: wallRotY, w: 3, h: 2 },
+          "wall-c": { position: [wallX, 3, z + 4] as [number, number, number], rotationY: wallRotY, w: 2.4, h: 1.7 },
+        };
+        const artifactSlots = {
+          "pedestal-left": [cx - 4, 1.15, z - 3] as [number, number, number],
+          "pedestal-right": [cx + 4, 1.15, z + 3] as [number, number, number],
+          "case-center": [cx, 0.9, z] as [number, number, number],
+        };
+        const filledWalls = new Set(exhibits?.walls.map((w) => w.slot) ?? []);
+        const filledPlinths = new Set(exhibits?.artifacts.map((a) => a.slot) ?? []);
 
-      <Pedestal position={[cx - 4, 0, z - 3]} />
-      <Pedestal position={[cx + 4, 0, z + 3]} />
-      <Pedestal position={[cx, 0, z]} h={0.8} />
-      <PlaceholderSculpture position={[cx - 4, 1.15, z - 3]} variant={Number(n)} />
-      <PlaceholderSculpture position={[cx + 4, 1.15, z + 3]} variant={Number(n) + 1} />
+        return (
+          <>
+            {(Object.keys(wallSlots) as (keyof typeof wallSlots)[]).map((slot) => {
+              const cfg = wallSlots[slot];
+              const ex = exhibits?.walls.find((w) => w.slot === slot);
+              return ex ? (
+                <WallExhibitFrame key={slot} exhibit={ex} {...cfg} />
+              ) : filledWalls.size > 0 && slot !== "wall-b" ? null : (
+                <FramePanel key={slot} {...cfg} />
+              );
+            })}
+            <FramePanel position={[cx, 3, z1 + 0.3]} />
+            <FramePanel position={[cx, 3, z2 - 0.3]} rotationY={Math.PI} />
+
+            <Pedestal position={[cx - 4, 0, z - 3]} />
+            <Pedestal position={[cx + 4, 0, z + 3]} />
+            <Pedestal position={[cx, 0, z]} h={0.8} />
+
+            {exhibits?.artifacts.map((a) => (
+              <ArtifactExhibit key={a.id} artifact={a} position={artifactSlots[a.slot]} />
+            ))}
+            {!filledPlinths.has("pedestal-left") && (
+              <PlaceholderSculpture position={[cx - 4, 1.15, z - 3]} variant={Number(n)} />
+            )}
+            {!filledPlinths.has("pedestal-right") && (
+              <PlaceholderSculpture position={[cx + 4, 1.15, z + 3]} variant={Number(n) + 1} />
+            )}
+          </>
+        );
+      })()}
+
     </group>
   );
 }
