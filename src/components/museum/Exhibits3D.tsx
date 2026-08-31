@@ -55,6 +55,7 @@ export function ArtifactExhibit({
   });
 
   const highlighted = nearby?.id === artifact.id || active?.id === artifact.id;
+  const prompt = nearby?.id === artifact.id && !active;
 
   return (
     <group>
@@ -94,7 +95,7 @@ export function ArtifactExhibit({
         </mesh>
       </group>
 
-      <ArtifactLabel artifact={artifact} position={position} highlighted={highlighted} />
+      <ArtifactLabel artifact={artifact} position={position} highlighted={prompt} />
     </group>
   );
 }
@@ -123,19 +124,19 @@ function ArtifactLabel({
     <group ref={group} position={[position[0], position[1] - 0.42, position[2] + 0.0]}>
       <group position={[0, 0, 0.78]} rotation={[-0.35, 0, 0]}>
         <mesh material={labelMat} castShadow>
-          <boxGeometry args={[1.0, 0.42, 0.03]} />
+          <boxGeometry args={[1.05, 0.56, 0.03]} />
         </mesh>
-        <Text position={[0, 0.12, 0.03]} fontSize={0.075} color="#5c3a26" anchorX="center" anchorY="middle" letterSpacing={0.08}>
+        <Text position={[0, 0.185, 0.03]} fontSize={0.075} color="#5c3a26" anchorX="center" anchorY="middle" letterSpacing={0.08}>
           {artifact.label[0]}
         </Text>
-        <Text position={[0, 0.005, 0.03]} fontSize={0.058} color="#8a8070" anchorX="center" anchorY="middle">
+        <Text position={[0, 0.07, 0.03]} fontSize={0.058} color="#8a8070" anchorX="center" anchorY="middle">
           {artifact.label[1]}
         </Text>
-        <Text position={[0, -0.1, 0.03]} fontSize={0.055} color="#8a8070" anchorX="center" anchorY="middle">
+        <Text position={[0, -0.035, 0.03]} fontSize={0.055} color="#8a8070" anchorX="center" anchorY="middle">
           {artifact.label[2]}
         </Text>
         {highlighted && (
-          <Text position={[0, -0.24, 0.03]} fontSize={0.055} color="#a35b2f" anchorX="center" anchorY="middle" letterSpacing={0.1}>
+          <Text position={[0, -0.18, 0.03]} fontSize={0.055} color="#a35b2f" anchorX="center" anchorY="middle" letterSpacing={0.1}>
             PRESS E TO EXPLORE
           </Text>
         )}
@@ -185,12 +186,12 @@ export function WallExhibitFrame({
       <mesh position={[0, 0, 0.055]} material={mountMat}>
         <boxGeometry args={[w, h, 0.04]} />
       </mesh>
-      <mesh position={[0, 0.075, 0.08]}>
-        <planeGeometry args={[w - 0.18, h - 0.32]} />
+      <mesh position={[0, 0.14, 0.08]}>
+        <planeGeometry args={[w - 0.18, h - 0.46]} />
         <meshStandardMaterial map={map} roughness={0.9} />
       </mesh>
       <Text
-        position={[0, -h / 2 + 0.24, 0.08]}
+        position={[0, -h / 2 + 0.21, 0.08]}
         fontSize={0.088}
         color="#5c3a26"
         anchorX="center"
@@ -201,7 +202,7 @@ export function WallExhibitFrame({
         {exhibit.title.toUpperCase()}
       </Text>
       <Text
-        position={[0, -h / 2 + 0.12, 0.08]}
+        position={[0, -h / 2 + 0.1, 0.08]}
         fontSize={0.066}
         color="#8a8070"
         anchorX="center"

@@ -418,6 +418,7 @@ function FirstPerson({ enabled }: { enabled: boolean }) {
 
 /* ---------------- scene ---------------- */
 
+
 function Scene({ firstPerson }: { firstPerson: boolean }) {
   const { active } = useExhibitState();
   return (
