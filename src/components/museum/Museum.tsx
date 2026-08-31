@@ -418,6 +418,18 @@ function FirstPerson({ enabled }: { enabled: boolean }) {
 
 /* ---------------- scene ---------------- */
 
+function DebugCam() {
+  const { camera } = useThree();
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("cam");
+    if (!q) return;
+    const [x, y, z, ry] = q.split(",").map(Number);
+    camera.position.set(x, y, z);
+    camera.rotation.set(0, ry, 0);
+  }, [camera]);
+  return null;
+}
+
 function Scene({ firstPerson }: { firstPerson: boolean }) {
   const { active } = useExhibitState();
   return (
@@ -454,6 +466,7 @@ function Scene({ firstPerson }: { firstPerson: boolean }) {
         <Gallery key={g.n} {...g} />
       ))}
 
+      <DebugCam />
       <ExhibitWatcher />
 
       <Environment preset="city" environmentIntensity={0.25} />
@@ -500,14 +513,6 @@ function MuseumExperience() {
         shadows
         dpr={[1, 1.75]}
         camera={{ fov: 62, position: [0, 1.7, 38], near: 0.1, far: 250 }}
-        onCreated={({ camera }) => {
-          const q = new URLSearchParams(window.location.search).get("cam");
-          if (q) {
-            const [x, y, z, ry] = q.split(",").map(Number);
-            camera.position.set(x, y, z);
-            camera.rotation.set(0, ry, 0);
-          }
-        }}
       >
         <Suspense fallback={null}>
           <Scene firstPerson={firstPerson} />
